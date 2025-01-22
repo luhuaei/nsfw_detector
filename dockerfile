@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN sed -i 's@//.*archive.ubuntu.com@//mirrors.ustc.edu.cn@g' /etc/apt/sources.list
 # 系统依赖安装放在最前面，因为这些很少改变
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -22,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 合并 pip 安装命令，减少层数
+RUN pip config set global.index-url https://mirrors.ustc.edu.cn/pypi/simple
 RUN pip3 install --no-cache-dir \
     python-magic \
     opencv-python-headless \
@@ -34,12 +36,12 @@ RUN pip3 install --no-cache-dir \
     PyMuPDF \
     && pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# 预下载模型
-RUN python3 -c "from transformers import pipeline; pipe = pipeline('image-classification', model='Falconsai/nsfw_image_detection', device=-1)"
+RUN pip3 install --no-cache-dir openvino
 
-RUN chmod -R 755 /root/.cache
+ENV HF_HUB_OFFLINE=1
+COPY Falconsai_nsfw_image_detection_ov_fp16 /app/Falconsai_nsfw_image_detection_ov_fp16
 
 # 源代码复制放在最后，因为这些文件最容易变化
-COPY app.py config.py processors.py utils.py index.html /app/
+COPY app.py config.py processors.py utils.py ov_model.py index.html /app/
 
-CMD ["python3", "app.py"]
+CMD ["python3", "/app/app.py"]

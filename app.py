@@ -216,7 +216,7 @@ def check_file():
             }), 400
 
         filename = secure_filename(file.filename)
-        logger.info(f"接收到文件: {filename}")
+        logger.debug(f"接收到文件: {filename}")
         
         temp_file = temp_handler.create_temp_file()
         file.save(temp_file.name)
@@ -229,7 +229,7 @@ def check_file():
             }), 400
         
         detected_type = detect_file_type(temp_file.name)
-        logger.info(f"检测到文件类型: {detected_type}")
+        logger.debug(f"检测到文件类型: {detected_type}")
         
         result = process_file_by_type(temp_file.name, detected_type, filename, temp_handler)
         return jsonify(result) if isinstance(result, dict) else jsonify(result[0]), result[1] if isinstance(result, tuple) else 200

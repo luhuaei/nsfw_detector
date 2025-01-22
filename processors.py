@@ -1,5 +1,4 @@
 # processors.py
-from transformers import pipeline
 import subprocess
 import numpy as np
 from PIL import Image
@@ -17,12 +16,12 @@ from config import (
     MAX_FILE_SIZE, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, 
     NSFW_THRESHOLD, FFMPEG_MAX_FRAMES, FFMPEG_TIMEOUT,ARCHIVE_EXTENSIONS
 )
+from ov_model import NSFW
 
 # 配置日志
 logger = logging.getLogger(__name__)
 
-# 初始化模型
-pipe = pipeline("image-classification", model="Falconsai/nsfw_image_detection", device=-1)
+nsfw_model = NSFW()
 
 class VideoProcessor:
     def __init__(self, video_path):
@@ -255,15 +254,9 @@ class VideoProcessor:
 def process_image(image):
     """处理单张图片并返回检测结果"""
     try:
-        logger.info("开始处理图片")
-        result = pipe(image)
-        nsfw_score = next((item['score'] for item in result if item['label'] == 'nsfw'), 0)
-        normal_score = next((item['score'] for item in result if item['label'] == 'normal'), 1)
-        logger.info(f"图片处理完成: NSFW={nsfw_score:.3f}, Normal={normal_score:.3f}")
-        return {
-            'nsfw': nsfw_score,
-            'normal': normal_score
-        }
+        result = nsfw_model(image)[0]
+        logger.debug(f"图片处理完成: NSFW={result['nsfw']:.3f}, Normal={result['normal']:.3f}")
+        return result
     except Exception as e:
         logger.error(f"图片处理失败: {str(e)}")
         raise Exception(f"Image processing failed: {str(e)}")
